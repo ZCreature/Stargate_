@@ -18,8 +18,12 @@
   const panel = document.getElementById('panel');
   const btnPhoto = document.getElementById('btnPhoto');
   const btnRecord = document.getElementById('btnRecord');
+  const styleBlocksBtn = document.getElementById('styleBlocks');
+  const stylePunctBtn = document.getElementById('stylePunct');
 
-  const LEVELS = [' ', '░', '▒', '▓', '█'];
+  const BLOCK_LEVELS = [' ', '░', '▒', '▓', '█'];
+  const PUNCT_LEVELS = [' ', ';', ':', "'", '"', ',', '.', '-', '$'];
+  let levels = BLOCK_LEVELS;
   const CHAR_ASPECT = 0.58; // approx width/height ratio of a monospace glyph
   const FONT_STACK = "Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace";
   const BAYER = [
@@ -115,7 +119,7 @@
   }
 
   function charFor(brightness, x, y, dither) {
-    const n = LEVELS.length;
+    const n = levels.length;
     const scaled = brightness * (n - 1);
     let idx = Math.floor(scaled);
     const frac = scaled - idx;
@@ -127,7 +131,7 @@
     }
     if (idx < 0) idx = 0;
     if (idx > n - 1) idx = n - 1;
-    return LEVELS[idx];
+    return levels[idx];
   }
 
   function paint(out) {
@@ -276,6 +280,18 @@
 
   btnPanel.addEventListener('click', () => {
     panel.classList.toggle('hidden');
+  });
+
+  styleBlocksBtn.addEventListener('click', () => {
+    levels = BLOCK_LEVELS;
+    styleBlocksBtn.classList.add('active');
+    stylePunctBtn.classList.remove('active');
+  });
+
+  stylePunctBtn.addEventListener('click', () => {
+    levels = PUNCT_LEVELS;
+    stylePunctBtn.classList.add('active');
+    styleBlocksBtn.classList.remove('active');
   });
 
   displayCanvas.addEventListener('click', () => {
