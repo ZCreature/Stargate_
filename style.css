@@ -142,6 +142,13 @@ button:active {
 
 #panel input[type="range"] {
   flex: 1;
+  min-width: 0;
+}
+
+#panel .row span {
+  flex: 0 0 auto;
+  min-width: 28px;
+  text-align: right;
 }
 
 #panel .buttons {
