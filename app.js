@@ -13,7 +13,6 @@
   const invertCb = document.getElementById('invert');
   const ditherCb = document.getElementById('dither');
   const btnFlip = document.getElementById('btnFlip');
-  const btnFull = document.getElementById('btnFull');
   const btnFreeze = document.getElementById('btnFreeze');
   const btnPanel = document.getElementById('btnPanel');
   const panel = document.getElementById('panel');
@@ -265,28 +264,6 @@
 
   btnFlip.addEventListener('click', () => {
     startCamera(facing === 'user' ? 'environment' : 'user');
-  });
-
-  function setUIHidden(hidden) {
-    document.body.classList.toggle('fullscreen-mode', hidden);
-    if (hidden) {
-      if (typeof document.documentElement.requestFullscreen === 'function') {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
-  }
-
-  function toggleUI() {
-    setUIHidden(!document.body.classList.contains('fullscreen-mode'));
-  }
-
-  btnFull.addEventListener('click', toggleUI);
-  displayCanvas.addEventListener('click', toggleUI);
-
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) document.body.classList.remove('fullscreen-mode');
   });
 
   btnFreeze.addEventListener('click', () => {

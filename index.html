@@ -12,16 +12,6 @@
     <div id="scanlines"></div>
   </div>
 
-  <div id="hud">
-    <div id="hudLeft">ASCII-CAM v1.0</div>
-    <button id="btnPanel" aria-label="toggle controls">[ MENU ]</button>
-  </div>
-
-  <div id="captureBar">
-    <button id="btnPhoto" aria-label="take photo">[ PHOTO ]</button>
-    <button id="btnRecord" aria-label="record video">[ REC ]</button>
-  </div>
-
   <div id="panel" class="hidden">
     <div class="row">
       <label for="cols">RESOLUTION</label>
@@ -37,12 +27,15 @@
       <label><input type="checkbox" id="invert"> INVERT</label>
       <label><input type="checkbox" id="dither" checked> DITHER</label>
     </div>
-    <div class="row buttons">
-      <button id="btnFlip">FLIP CAM</button>
-      <button id="btnFull">FULLSCREEN</button>
-      <button id="btnFreeze">FREEZE</button>
-    </div>
     <div id="status">STATUS: WAITING FOR CAMERA PERMISSION</div>
+  </div>
+
+  <div id="bottomBar">
+    <button id="btnPanel" aria-label="toggle controls">[ MENU ]</button>
+    <button id="btnFlip">FLIP CAM</button>
+    <button id="btnFreeze">FREEZE</button>
+    <button id="btnPhoto" aria-label="take photo">[ PHOTO ]</button>
+    <button id="btnRecord" aria-label="record video">[ REC ]</button>
   </div>
 
   <video id="video" autoplay playsinline muted></video>

@@ -27,35 +27,29 @@ html, body {
 }
 
 #display {
-  cursor: pointer;
   /* approximates the old text-shadow glow as a single composited layer
      instead of a per-character canvas shadow, which is far cheaper to
      redraw every frame */
   filter: drop-shadow(0 0 1px rgba(255,255,255,0.3));
 }
 
-body.fullscreen-mode #hud,
-body.fullscreen-mode #panel,
-body.fullscreen-mode #captureBar {
-  display: none;
-}
-
-#captureBar {
+#bottomBar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
-  padding: 14px;
+  gap: 8px;
+  padding: 10px 8px;
   background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
   z-index: 10;
 }
 
-#captureBar button {
-  padding: 10px 18px;
-  font-size: 13px;
+#bottomBar button {
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 #btnRecord.active {
@@ -77,26 +71,6 @@ body.fullscreen-mode #captureBar {
   mix-blend-mode: overlay;
 }
 
-#hud {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  font-family: monospace;
-  font-size: 13px;
-  color: #cfcfcf;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
-  z-index: 10;
-}
-
-#hudLeft {
-  letter-spacing: 1px;
-}
-
 button {
   background: #000;
   color: #cfcfcf;
@@ -114,9 +88,11 @@ button:active {
 
 #panel {
   position: fixed;
-  top: 40px;
+  bottom: 64px;
   right: 10px;
-  width: 240px;
+  left: 10px;
+  max-width: 240px;
+  margin-left: auto;
   background: rgba(0,0,0,0.92);
   border: 1px solid #666;
   padding: 12px;
@@ -149,14 +125,6 @@ button:active {
   flex: 0 0 auto;
   min-width: 28px;
   text-align: right;
-}
-
-#panel .buttons {
-  flex-wrap: wrap;
-}
-
-#panel .buttons button {
-  flex: 1 1 auto;
 }
 
 #status {
