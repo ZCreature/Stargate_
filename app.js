@@ -21,7 +21,7 @@
   const btnStyle = document.getElementById('btnStyle');
 
   const BLOCK_LEVELS = [' ', '░', '▒', '▓', '█'];
-  const PUNCT_LEVELS = [' ', ';', ':', "'", '"', ',', '.', '-', '$'];
+  const PUNCT_LEVELS = [' ', '`', ';', ':', "'", '"', ',', '.', '!', '-', '$'];
   let levels = PUNCT_LEVELS;
   const CHAR_ASPECT = 0.58; // approx width/height ratio of a monospace glyph
   const FONT_STACK = "Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace";
@@ -46,6 +46,7 @@
   let lastOut = null;
   let mediaRecorder = null;
   let recordedChunks = [];
+  let pendingRecording = null;
 
   function setStatus(msg) {
     statusEl.textContent = 'STATUS: ' + msg;
@@ -71,8 +72,16 @@
 
     dctx.font = `${fontSize}px ${FONT_STACK}`;
     const textWidth = dctx.measureText('#'.repeat(cols)).width;
-    offsetX = Math.max(0, (window.innerWidth - textWidth) / 2);
-    offsetY = Math.max(0, (window.innerHeight - rows * fontSize) / 2);
+    // Snap to the device pixel grid: a fractional CSS-pixel offset lands
+    // glyphs between physical pixels, which forces the browser to
+    // anti-alias/blur every edge instead of drawing a crisp 1px stroke.
+    offsetX = snapToDevicePixel(Math.max(0, (window.innerWidth - textWidth) / 2));
+    offsetY = snapToDevicePixel(Math.max(0, (window.innerHeight - rows * fontSize) / 2));
+  }
+
+  function snapToDevicePixel(cssPx) {
+    const dpr = window.devicePixelRatio || 1;
+    return Math.round(cssPx * dpr) / dpr;
   }
 
   async function startCamera(preferredFacing) {
@@ -134,13 +143,14 @@
   }
 
   function paint(out) {
+    dctx.imageSmoothingEnabled = false;
     dctx.fillStyle = '#000';
     dctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     dctx.font = `${fontSize}px ${FONT_STACK}`;
     dctx.textBaseline = 'top';
     dctx.fillStyle = '#d8d8d8';
     for (let y = 0; y < out.length; y++) {
-      dctx.fillText(out[y], offsetX, offsetY + y * fontSize);
+      dctx.fillText(out[y], offsetX, snapToDevicePixel(offsetY + y * fontSize));
     }
   }
 
@@ -238,8 +248,15 @@
       const type = mediaRecorder.mimeType || 'video/mp4';
       const blob = new Blob(recordedChunks, { type });
       const ext = type.includes('mp4') ? 'mp4' : 'webm';
-      shareOrDownload(blob, `ascii-cam-${Date.now()}.${ext}`);
       recordedChunks = [];
+      // iOS Safari only allows navigator.share()/anchor downloads inside a
+      // real user gesture - onstop fires asynchronously after the gesture
+      // that called stop(), so saving here would silently fail. Stage the
+      // blob and require one more tap to save it.
+      pendingRecording = { blob, filename: `ascii-cam-${Date.now()}.${ext}` };
+      btnRecord.textContent = '[ SAVE VIDEO ]';
+      btnRecord.classList.remove('active');
+      btnRecord.classList.add('ready');
     };
     mediaRecorder.start();
     btnRecord.textContent = '[ STOP ]';
@@ -251,7 +268,7 @@
       mediaRecorder.stop();
     }
     mediaRecorder = null;
-    btnRecord.textContent = '[ REC ]';
+    btnRecord.textContent = '[ SAVING... ]';
     btnRecord.classList.remove('active');
   }
 
@@ -298,7 +315,13 @@
   btnPhoto.addEventListener('click', takePhoto);
 
   btnRecord.addEventListener('click', () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    if (pendingRecording) {
+      const { blob, filename } = pendingRecording;
+      pendingRecording = null;
+      btnRecord.textContent = '[ REC ]';
+      btnRecord.classList.remove('ready');
+      shareOrDownload(blob, filename);
+    } else if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       stopRecording();
     } else {
       startRecording();

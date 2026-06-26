@@ -27,10 +27,7 @@ html, body {
 }
 
 #display {
-  /* approximates the old text-shadow glow as a single composited layer
-     instead of a per-character canvas shadow, which is far cheaper to
-     redraw every frame */
-  filter: drop-shadow(0 0 1px rgba(255,255,255,0.3));
+  image-rendering: pixelated;
 }
 
 #bottomBar {
@@ -55,6 +52,11 @@ html, body {
 #btnRecord.active {
   color: #ff5555;
   border-color: #ff5555;
+}
+
+#btnRecord.ready {
+  color: #55ff88;
+  border-color: #55ff88;
 }
 
 #scanlines {
