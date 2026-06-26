@@ -22,7 +22,7 @@
 
   const BLOCK_LEVELS = [' ', '░', '▒', '▓', '█'];
   const PUNCT_LEVELS = [' ', ';', ':', "'", '"', ',', '.', '-', '$'];
-  let levels = BLOCK_LEVELS;
+  let levels = PUNCT_LEVELS;
   const CHAR_ASPECT = 0.58; // approx width/height ratio of a monospace glyph
   const FONT_STACK = "Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace";
   const BAYER = [
