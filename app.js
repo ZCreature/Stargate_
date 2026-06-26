@@ -278,6 +278,10 @@
     panel.classList.toggle('hidden');
   });
 
+  displayCanvas.addEventListener('click', () => {
+    panel.classList.add('hidden');
+  });
+
   btnPhoto.addEventListener('click', takePhoto);
 
   btnRecord.addEventListener('click', () => {
