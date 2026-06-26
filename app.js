@@ -18,8 +18,7 @@
   const panel = document.getElementById('panel');
   const btnPhoto = document.getElementById('btnPhoto');
   const btnRecord = document.getElementById('btnRecord');
-  const styleBlocksBtn = document.getElementById('styleBlocks');
-  const stylePunctBtn = document.getElementById('stylePunct');
+  const btnStyle = document.getElementById('btnStyle');
 
   const BLOCK_LEVELS = [' ', '░', '▒', '▓', '█'];
   const PUNCT_LEVELS = [' ', ';', ':', "'", '"', ',', '.', '-', '$'];
@@ -282,16 +281,14 @@
     panel.classList.toggle('hidden');
   });
 
-  styleBlocksBtn.addEventListener('click', () => {
-    levels = BLOCK_LEVELS;
-    styleBlocksBtn.classList.add('active');
-    stylePunctBtn.classList.remove('active');
-  });
-
-  stylePunctBtn.addEventListener('click', () => {
-    levels = PUNCT_LEVELS;
-    stylePunctBtn.classList.add('active');
-    styleBlocksBtn.classList.remove('active');
+  btnStyle.addEventListener('click', () => {
+    if (levels === BLOCK_LEVELS) {
+      levels = PUNCT_LEVELS;
+      btnStyle.textContent = 'STYLE 2';
+    } else {
+      levels = BLOCK_LEVELS;
+      btnStyle.textContent = 'STYLE 1';
+    }
   });
 
   displayCanvas.addEventListener('click', () => {

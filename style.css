@@ -127,23 +127,6 @@ button:active {
   text-align: right;
 }
 
-.segmented {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-}
-
-.segBtn {
-  flex: 1;
-  padding: 4px 6px;
-  font-size: 11px;
-}
-
-.segBtn.active {
-  background: #cfcfcf;
-  color: #000;
-}
-
 #status {
   border-top: 1px solid #444;
   padding-top: 8px;
