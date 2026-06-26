@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ASCII-CAM</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="screen">
+    <canvas id="display"></canvas>
+    <div id="scanlines"></div>
+  </div>
+
+  <div id="hud">
+    <div id="hudLeft">ASCII-CAM v1.0</div>
+    <button id="btnPanel" aria-label="toggle controls">[ MENU ]</button>
+  </div>
+
+  <div id="captureBar">
+    <button id="btnPhoto" aria-label="take photo">[ PHOTO ]</button>
+    <button id="btnRecord" aria-label="record video">[ REC ]</button>
+  </div>
+
+  <div id="panel" class="hidden">
+    <div class="row">
+      <label for="cols">RESOLUTION</label>
+      <input type="range" id="cols" min="40" max="200" value="100" step="5">
+      <span id="colsVal">100</span>
+    </div>
+    <div class="row">
+      <label for="contrast">CONTRAST</label>
+      <input type="range" id="contrast" min="50" max="200" value="100" step="5">
+      <span id="contrastVal">100</span>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="invert"> INVERT</label>
+      <label><input type="checkbox" id="dither" checked> DITHER</label>
+    </div>
+    <div class="row buttons">
+      <button id="btnFlip">FLIP CAM</button>
+      <button id="btnFull">FULLSCREEN</button>
+      <button id="btnFreeze">FREEZE</button>
+    </div>
+    <div id="status">STATUS: WAITING FOR CAMERA PERMISSION</div>
+  </div>
+
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="sample"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
