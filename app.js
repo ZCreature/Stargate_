@@ -244,8 +244,19 @@
     mediaRecorder.ondataavailable = e => {
       if (e.data && e.data.size) recordedChunks.push(e.data);
     };
-    mediaRecorder.onstop = () => {
-      const type = mediaRecorder.mimeType || 'video/mp4';
+    mediaRecorder.onstop = (event) => {
+      // Read the recorder off the event, not the outer `mediaRecorder`
+      // variable: stopRecording() sets that to null right after calling
+      // .stop(), and this handler fires later, asynchronously - so by the
+      // time it runs, `mediaRecorder` is already null and `.mimeType` would
+      // throw, silently aborting the save before it ever produced a file.
+      const recorder = event.target;
+      // The canvas capture track keeps feeding frames in the background
+      // until explicitly stopped - without this, each recording leaks a
+      // live capture pipeline that's never reclaimed for the rest of the
+      // page's life.
+      recorder.stream.getTracks().forEach(t => t.stop());
+      const type = recorder.mimeType || 'video/mp4';
       const blob = new Blob(recordedChunks, { type });
       const ext = type.includes('mp4') ? 'mp4' : 'webm';
       recordedChunks = [];
@@ -257,6 +268,12 @@
       btnRecord.textContent = '[ SAVE VIDEO ]';
       btnRecord.classList.remove('active');
       btnRecord.classList.add('ready');
+    };
+    mediaRecorder.onerror = (event) => {
+      setStatus('ERROR: RECORDING FAILED - ' + (event.error ? event.error.name : 'UNKNOWN'));
+      btnRecord.textContent = '[ REC ]';
+      btnRecord.classList.remove('active');
+      mediaRecorder = null;
     };
     mediaRecorder.start();
     btnRecord.textContent = '[ STOP ]';
