@@ -36,12 +36,14 @@
     '▀', '▜', '▛', '█'
   ];
   // Vertical-stroke/slash glyphs sorted light-to-heavy ink: tiny caret,
-  // dots, thin verticals and single-barb harpoons, then letters/digits,
-  // multi-component harpoons, parens/slashes, and finally the double
-  // harpoon glyph as the densest.
+  // dots, thin verticals, then letters/digits, a double line and heavy
+  // box-drawing vertical, and finally parens/slashes as the densest.
+  // Stuck to common Latin-1/box-drawing/punctuation blocks here - the
+  // earlier harpoon symbols (math symbols block) weren't reliably
+  // supported across fonts and rendered as missing/blank glyphs.
   const LINE_LEVELS = [
-    '^', ':', ';', '|', '⏐', '⇃', '⇂', 'l', 'i', '!', '¡', '1', 'I', 'j',
-    '⥜', '⥙', '⥕', '(', ')', '\\', '/', '⥠'
+    '^', ':', ';', '|', '¦', '│', 'l', 'i', '!', '¡', '1', 'I', 'j',
+    '‖', '┃', '(', ')', '\\', '/'
   ];
   // Digits sorted light-to-heavy ink: '1' is a single thin stroke, '8' has
   // two enclosed loops and is the densest-looking digit.
