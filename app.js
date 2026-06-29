@@ -51,9 +51,6 @@
   // the ramp to 20 levels for finer gradients.
   const SUB_LEVELS = ['₁', '₇', '₄', '₂', '₃', '₅', '₉', '₆', '₀', '₈'];
   const POWER_LEVELS = SUB_LEVELS.concat(NUM_LEVELS);
-  // Outline faces are light (just thin strokes for eyes/mouth); the black
-  // smiling face is a solid filled circle, far denser than the other two.
-  const FACE_LEVELS = ['☺︎', '☹', '☻'];
   const STYLES = [
     { mode: 'ramp', levels: PUNCT_LEVELS, label: 'STYLE 1' },
     { mode: 'ramp', levels: CLASSIC_LEVELS, label: 'STYLE 2' },
@@ -61,9 +58,7 @@
     { mode: 'ramp', levels: BLOCK_LEVELS, label: 'STYLE 4' },
     { mode: 'ramp', levels: BAR_LEVELS, label: 'STYLE 5' },
     { mode: 'ramp', levels: LINE_LEVELS, label: 'STYLE 6' },
-    { mode: 'ramp', levels: NUM_LEVELS, label: 'STYLE 7' },
-    { mode: 'ramp', levels: POWER_LEVELS, label: 'STYLE 8' },
-    { mode: 'ramp', levels: FACE_LEVELS, label: 'STYLE 9' }
+    { mode: 'ramp', levels: POWER_LEVELS, label: 'STYLE 7' }
   ];
   let styleIndex = 0; // always start on Style 1
   let levels = STYLES[styleIndex].levels;
