@@ -67,6 +67,46 @@ html, body {
   border-color: #55ff88;
 }
 
+#styleIndicator {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 72px;
+  display: flex;
+  justify-content: center;
+  z-index: 12;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+#styleIndicator.visible {
+  opacity: 1;
+}
+
+#styleDots {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  background: rgba(0,0,0,0.45);
+  padding: 6px 10px;
+  border-radius: 20px;
+}
+
+.style-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transition: all 0.2s;
+}
+
+.style-dot.active {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+}
+
 #scanlines {
   position: fixed;
   inset: 0;

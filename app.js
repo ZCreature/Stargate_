@@ -19,6 +19,8 @@
   const btnPhoto = document.getElementById('btnPhoto');
   const btnRecord = document.getElementById('btnRecord');
   const btnStyle = document.getElementById('btnStyle');
+  const styleIndicator = document.getElementById('styleIndicator');
+  const styleDots = document.getElementById('styleDots');
 
   const BLOCK_LEVELS = [' ', '░', '▒', '▓', '█'];
   const PUNCT_LEVELS = [' ', '`', ';', ':', "'", '"', ',', '.', '!', '-', '$'];
@@ -96,6 +98,36 @@
 
   function clearStatus() {
     statusEl.classList.add('hidden');
+  }
+
+  let hideIndicatorTimer = null;
+
+  function buildStyleDots() {
+    styleDots.innerHTML = '';
+    STYLES.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'style-dot' + (i === styleIndex ? ' active' : '');
+      styleDots.appendChild(dot);
+    });
+  }
+
+  function showStyleIndicator() {
+    const dots = styleDots.children;
+    for (let i = 0; i < dots.length; i++) {
+      dots[i].classList.toggle('active', i === styleIndex);
+    }
+    styleIndicator.classList.add('visible');
+    clearTimeout(hideIndicatorTimer);
+    hideIndicatorTimer = setTimeout(() => styleIndicator.classList.remove('visible'), 2000);
+  }
+
+  function applyStyle(newIndex) {
+    styleIndex = newIndex;
+    const style = STYLES[styleIndex];
+    if (style.mode === 'ramp') levels = style.levels;
+    btnStyle.textContent = style.label;
+    showStyleIndicator();
+    layout();
   }
 
   function layout() {
@@ -428,12 +460,24 @@
   });
 
   btnStyle.addEventListener('click', () => {
-    styleIndex = (styleIndex + 1) % STYLES.length;
-    const style = STYLES[styleIndex];
-    if (style.mode === 'ramp') levels = style.levels;
-    btnStyle.textContent = style.label;
-    layout();
+    applyStyle((styleIndex + 1) % STYLES.length);
   });
+
+  let touchStartX = 0, touchStartY = 0;
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!panel.classList.contains('hidden')) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    applyStyle(dx < 0
+      ? (styleIndex + 1) % STYLES.length
+      : (styleIndex - 1 + STYLES.length) % STYLES.length
+    );
+  }, { passive: true });
 
   displayCanvas.addEventListener('click', () => {
     panel.classList.add('hidden');
@@ -472,6 +516,7 @@
   window.addEventListener('resize', layout);
   video.addEventListener('loadedmetadata', layout);
 
+  buildStyleDots();
   startCamera(facing);
   requestAnimationFrame(renderFrame);
 })();
