@@ -22,7 +22,51 @@
 
   const BLOCK_LEVELS = [' ', '░', '▒', '▓', '█'];
   const PUNCT_LEVELS = [' ', '`', ';', ':', "'", '"', ',', '.', '!', '-', '$'];
-  let levels = PUNCT_LEVELS;
+  const BAR_LEVELS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+  const CLASSIC_LEVELS = ['.', ':', '-', '=', '+', '*', '#', '%', '@'];
+  // Real 2x2 subpixel rendering: each cell samples a 2x2 block, each
+  // corner is thresholded to lit/unlit, and the 4-bit pattern picks the
+  // matching Unicode quadrant glyph - so the glyph's shape encodes actual
+  // sub-cell detail (edges, corners) instead of just an average brightness.
+  // Index = (TL<<3)|(TR<<2)|(BL<<1)|BR.
+  const QUADRANT_GLYPHS = [
+    ' ', '▗', '▖', '▄',
+    '▝', '▐', '▞', '▟',
+    '▘', '▚', '▌', '▙',
+    '▀', '▜', '▛', '█'
+  ];
+  // Vertical-stroke/slash glyphs sorted light-to-heavy ink: tiny caret,
+  // dots, thin verticals and single-barb harpoons, then letters/digits,
+  // multi-component harpoons, parens/slashes, and finally the double
+  // harpoon glyph as the densest.
+  const LINE_LEVELS = [
+    '^', ':', ';', '|', '⏐', '⇃', '⇂', 'l', 'i', '!', '¡', '1', 'I', 'j',
+    '⥜', '⥙', '⥕', '(', ')', '\\', '/', '⥠'
+  ];
+  // Digits sorted light-to-heavy ink: '1' is a single thin stroke, '8' has
+  // two enclosed loops and is the densest-looking digit.
+  const NUM_LEVELS = ['1', '7', '4', '2', '3', '5', '9', '6', '0', '8'];
+  // Subscript digits are smaller/lighter than full-size ones, so they make
+  // a natural lighter tier ahead of the same digits at full size - doubling
+  // the ramp to 20 levels for finer gradients.
+  const SUB_LEVELS = ['₁', '₇', '₄', '₂', '₃', '₅', '₉', '₆', '₀', '₈'];
+  const POWER_LEVELS = SUB_LEVELS.concat(NUM_LEVELS);
+  // Outline faces are light (just thin strokes for eyes/mouth); the black
+  // smiling face is a solid filled circle, far denser than the other two.
+  const FACE_LEVELS = ['☺︎', '☹', '☻'];
+  const STYLES = [
+    { mode: 'ramp', levels: PUNCT_LEVELS, label: 'STYLE 1' },
+    { mode: 'ramp', levels: CLASSIC_LEVELS, label: 'STYLE 2' },
+    { mode: 'quadrant', label: 'STYLE 3' },
+    { mode: 'ramp', levels: BLOCK_LEVELS, label: 'STYLE 4' },
+    { mode: 'ramp', levels: BAR_LEVELS, label: 'STYLE 5' },
+    { mode: 'ramp', levels: LINE_LEVELS, label: 'STYLE 6' },
+    { mode: 'ramp', levels: NUM_LEVELS, label: 'STYLE 7' },
+    { mode: 'ramp', levels: POWER_LEVELS, label: 'STYLE 8' },
+    { mode: 'ramp', levels: FACE_LEVELS, label: 'STYLE 9' }
+  ];
+  let styleIndex = 0; // always start on Style 1
+  let levels = STYLES[styleIndex].levels;
   const CHAR_ASPECT = 0.58; // approx width/height ratio of a monospace glyph
   const FONT_STACK = "Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace";
   const BAYER = [
@@ -35,9 +79,9 @@
 
   let cols = parseInt(colsSlider.value, 10);
   let rows = 30;
+  let sampleCols = cols;
+  let sampleRows = rows;
   let fontSize = 10;
-  let offsetX = 0;
-  let offsetY = 0;
   let facing = 'environment';
   let frozen = false;
   let stream = null;
@@ -50,14 +94,28 @@
 
   function setStatus(msg) {
     statusEl.textContent = 'STATUS: ' + msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function clearStatus() {
+    statusEl.classList.add('hidden');
   }
 
   function layout() {
-    const vw = video.videoWidth || 4;
-    const vh = video.videoHeight || 3;
-    rows = Math.max(8, Math.round(cols * (vh / vw) * CHAR_ASPECT));
-    sampleCanvas.width = cols;
-    sampleCanvas.height = rows;
+    // Derive rows from the screen's own aspect ratio (not the camera's),
+    // accounting for CHAR_ASPECT so the rendered character grid's pixel
+    // aspect already matches the screen exactly. That means no stretching
+    // is needed to fill the screen - the camera frame is center-cropped to
+    // this same aspect instead (see renderFrame), so content keeps its
+    // correct proportions and just loses the edges, like object-fit: cover.
+    rows = Math.max(8, Math.round(cols * CHAR_ASPECT * window.innerHeight / window.innerWidth));
+    // Quadrant mode samples a 2x2 block per character cell, so it needs
+    // double the resolution in each dimension.
+    const subpixel = STYLES[styleIndex].mode === 'quadrant';
+    sampleCols = subpixel ? cols * 2 : cols;
+    sampleRows = subpixel ? rows * 2 : rows;
+    sampleCanvas.width = sampleCols;
+    sampleCanvas.height = sampleRows;
 
     const dpr = window.devicePixelRatio || 1;
     displayCanvas.width = Math.round(window.innerWidth * dpr);
@@ -66,17 +124,7 @@
     displayCanvas.style.height = window.innerHeight + 'px';
     dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const fsByWidth = window.innerWidth / (cols * CHAR_ASPECT);
-    const fsByHeight = window.innerHeight / rows;
-    fontSize = Math.max(2, Math.floor(Math.min(fsByWidth, fsByHeight)));
-
-    dctx.font = `${fontSize}px ${FONT_STACK}`;
-    const textWidth = dctx.measureText('#'.repeat(cols)).width;
-    // Snap to the device pixel grid: a fractional CSS-pixel offset lands
-    // glyphs between physical pixels, which forces the browser to
-    // anti-alias/blur every edge instead of drawing a crisp 1px stroke.
-    offsetX = snapToDevicePixel(Math.max(0, (window.innerWidth - textWidth) / 2));
-    offsetY = snapToDevicePixel(Math.max(0, (window.innerHeight - rows * fontSize) / 2));
+    fontSize = Math.max(2, snapToDevicePixel(window.innerHeight / rows));
   }
 
   function snapToDevicePixel(cssPx) {
@@ -120,7 +168,7 @@
       await video.play();
       facing = preferredFacing;
       layout();
-      setStatus('CAMERA ACTIVE (' + (facing === 'user' ? 'FRONT' : 'REAR') + ')');
+      clearStatus();
     } catch (err) {
       setStatus('ERROR: ' + err.name + ' - ' + err.message);
     }
@@ -148,9 +196,9 @@
     dctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     dctx.font = `${fontSize}px ${FONT_STACK}`;
     dctx.textBaseline = 'top';
-    dctx.fillStyle = '#d8d8d8';
+    dctx.fillStyle = '#fff';
     for (let y = 0; y < out.length; y++) {
-      dctx.fillText(out[y], offsetX, snapToDevicePixel(offsetY + y * fontSize));
+      dctx.fillText(out[y], 0, y * fontSize);
     }
   }
 
@@ -162,37 +210,86 @@
     if (timestamp - lastFrameTime < minInterval) return;
     lastFrameTime = timestamp;
 
+    // Center-crop the camera frame to the screen's aspect ratio (object-fit:
+    // cover), NOT the sample grid's cols/rows ratio - the grid is
+    // deliberately skewed by CHAR_ASPECT (narrow monospace cells), and
+    // sampling the full camera frame into it relies on that skew being
+    // cancelled out by the character rendering. Cropping to cols/rows
+    // instead breaks that cancellation and squishes the content.
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const targetAspect = window.innerWidth / window.innerHeight;
+    let sx, sy, sw, sh;
+    if (vw / vh > targetAspect) {
+      sh = vh;
+      sw = vh * targetAspect;
+      sx = (vw - sw) / 2;
+      sy = 0;
+    } else {
+      sw = vw;
+      sh = vw / targetAspect;
+      sx = 0;
+      sy = (vh - sh) / 2;
+    }
+
     sctx.save();
     if (facing === 'user') {
-      sctx.translate(cols, 0);
+      sctx.translate(sampleCols, 0);
       sctx.scale(-1, 1);
     }
-    sctx.drawImage(video, 0, 0, cols, rows);
+    sctx.drawImage(video, sx, sy, sw, sh, 0, 0, sampleCols, sampleRows);
     sctx.restore();
 
-    const data = sctx.getImageData(0, 0, cols, rows).data;
+    const data = sctx.getImageData(0, 0, sampleCols, sampleRows).data;
     const contrastFactor = parseInt(contrastSlider.value, 10) / 100;
     const invert = invertCb.checked;
     const dither = ditherCb.checked;
 
+    function lumAt(x, y) {
+      const p = (y * sampleCols + x) * 4;
+      const r = data[p], g = data[p + 1], b = data[p + 2];
+      let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      lum = (lum - 0.5) * contrastFactor + 0.5;
+      if (invert) lum = 1 - lum;
+      if (lum < 0) lum = 0;
+      if (lum > 1) lum = 1;
+      return lum;
+    }
+
     const out = new Array(rows);
-    let p = 0;
-    for (let y = 0; y < rows; y++) {
-      let line = '';
-      for (let x = 0; x < cols; x++) {
-        const r = data[p], g = data[p + 1], b = data[p + 2];
-        p += 4;
-        let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        lum = (lum - 0.5) * contrastFactor + 0.5;
-        if (invert) lum = 1 - lum;
-        if (lum < 0) lum = 0;
-        if (lum > 1) lum = 1;
-        line += charFor(lum, x, y, dither);
+    if (STYLES[styleIndex].mode === 'quadrant') {
+      for (let y = 0; y < rows; y++) {
+        let line = '';
+        const sy = y * 2;
+        for (let x = 0; x < cols; x++) {
+          const sx = x * 2;
+          const tl = litBit(lumAt(sx, sy), sx, sy, dither);
+          const tr = litBit(lumAt(sx + 1, sy), sx + 1, sy, dither);
+          const bl = litBit(lumAt(sx, sy + 1), sx, sy + 1, dither);
+          const br = litBit(lumAt(sx + 1, sy + 1), sx + 1, sy + 1, dither);
+          line += QUADRANT_GLYPHS[(tl << 3) | (tr << 2) | (bl << 1) | br];
+        }
+        out[y] = line;
       }
-      out[y] = line;
+    } else {
+      for (let y = 0; y < rows; y++) {
+        let line = '';
+        for (let x = 0; x < cols; x++) {
+          line += charFor(lumAt(x, y), x, y, dither);
+        }
+        out[y] = line;
+      }
     }
     lastOut = out;
     paint(out);
+  }
+
+  function litBit(lum, x, y, dither) {
+    if (dither) {
+      const threshold = (BAYER[(y % 4) * 4 + (x % 4)] + 0.5) / 16;
+      return lum > threshold ? 1 : 0;
+    }
+    return lum > 0.5 ? 1 : 0;
   }
 
   async function shareOrDownload(blob, filename) {
@@ -237,6 +334,7 @@
     try {
       mediaRecorder = new MediaRecorder(captureStream, mimeType ? { mimeType } : undefined);
     } catch (err) {
+      captureStream.getTracks().forEach(t => t.stop());
       setStatus('ERROR: ' + err.name + ' - ' + err.message);
       return;
     }
@@ -268,11 +366,13 @@
       btnRecord.textContent = '[ SAVE VIDEO ]';
       btnRecord.classList.remove('active');
       btnRecord.classList.add('ready');
+      btnRecord.disabled = false;
     };
     mediaRecorder.onerror = (event) => {
       setStatus('ERROR: RECORDING FAILED - ' + (event.error ? event.error.name : 'UNKNOWN'));
       btnRecord.textContent = '[ REC ]';
       btnRecord.classList.remove('active');
+      btnRecord.disabled = false;
       mediaRecorder = null;
     };
     mediaRecorder.start();
@@ -287,6 +387,11 @@
     mediaRecorder = null;
     btnRecord.textContent = '[ SAVING... ]';
     btnRecord.classList.remove('active');
+    // onstop/onerror fire asynchronously after this returns - disable the
+    // button so a fast double-tap can't call startRecording() while the
+    // old recorder is still finalizing, which would leak it and let its
+    // onstop clobber the new recording's UI state.
+    btnRecord.disabled = true;
   }
 
   colsSlider.addEventListener('input', () => {
@@ -316,13 +421,11 @@
   });
 
   btnStyle.addEventListener('click', () => {
-    if (levels === BLOCK_LEVELS) {
-      levels = PUNCT_LEVELS;
-      btnStyle.textContent = 'STYLE 2';
-    } else {
-      levels = BLOCK_LEVELS;
-      btnStyle.textContent = 'STYLE 1';
-    }
+    styleIndex = (styleIndex + 1) % STYLES.length;
+    const style = STYLES[styleIndex];
+    if (style.mode === 'ramp') levels = style.levels;
+    btnStyle.textContent = style.label;
+    layout();
   });
 
   displayCanvas.addEventListener('click', () => {

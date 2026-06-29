@@ -13,7 +13,15 @@ html, body {
   user-select: none;
 }
 
-#video, #sample {
+#video {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#sample {
   display: none;
 }
 
@@ -134,4 +142,8 @@ button:active {
   padding-top: 8px;
   color: #888;
   font-size: 11px;
+}
+
+#status.hidden {
+  display: none;
 }
