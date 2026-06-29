@@ -42,7 +42,7 @@
   // same advance width as regular letters in every font, which left
   // ragged/missing-looking edges since each row is drawn as one string.
   const LINE_LEVELS = [
-    '^', ':', ';', '|', 'l', 'i', '!', '¡', '1', 'I', 'j',
+    ' ', '^', ':', ';', '|', 'l', 'i', '!', '¡', '1', 'I', 'j',
     '"', ']', '(', ')', '\\', '/'
   ];
   // Digits sorted light-to-heavy ink: '1' is a single thin stroke, '8' has
@@ -57,10 +57,10 @@
     { mode: 'ramp', levels: PUNCT_LEVELS, label: 'STYLE 1' },
     { mode: 'ramp', levels: CLASSIC_LEVELS, label: 'STYLE 2' },
     { mode: 'quadrant', label: 'STYLE 3' },
-    { mode: 'ramp', levels: BLOCK_LEVELS, label: 'STYLE 4' },
-    { mode: 'ramp', levels: BAR_LEVELS, label: 'STYLE 5' },
-    { mode: 'ramp', levels: LINE_LEVELS, label: 'STYLE 6' },
-    { mode: 'ramp', levels: POWER_LEVELS, label: 'STYLE 7' }
+    { mode: 'ramp', levels: BAR_LEVELS, label: 'STYLE 4' },
+    { mode: 'ramp', levels: LINE_LEVELS, label: 'STYLE 5' },
+    { mode: 'ramp', levels: POWER_LEVELS, label: 'STYLE 6' },
+    { mode: 'ramp', levels: BLOCK_LEVELS, label: 'STYLE 7' }
   ];
   let styleIndex = 0; // always start on Style 1
   let levels = STYLES[styleIndex].levels;
@@ -111,12 +111,22 @@
     const subpixel = STYLES[styleIndex].mode === 'quadrant';
     sampleCols = subpixel ? cols * 2 : cols;
     sampleRows = subpixel ? rows * 2 : rows;
-    sampleCanvas.width = sampleCols;
-    sampleCanvas.height = sampleRows;
+    // Setting .width/.height always reallocates the canvas's backing
+    // store, even when assigned the same value - guard against that, or
+    // every style switch (which calls layout() but rarely changes these
+    // dimensions) needlessly reallocates a multi-megabyte GPU buffer.
+    // Rapid style-cycling doing this dozens of times a second is enough
+    // to crash/reload the tab on iOS Safari's tight canvas memory budget.
+    if (sampleCanvas.width !== sampleCols) sampleCanvas.width = sampleCols;
+    if (sampleCanvas.height !== sampleRows) sampleCanvas.height = sampleRows;
 
     const dpr = window.devicePixelRatio || 1;
-    displayCanvas.width = Math.round(window.innerWidth * dpr);
-    displayCanvas.height = Math.round(window.innerHeight * dpr);
+    const dispW = Math.round(window.innerWidth * dpr);
+    const dispH = Math.round(window.innerHeight * dpr);
+    if (displayCanvas.width !== dispW || displayCanvas.height !== dispH) {
+      displayCanvas.width = dispW;
+      displayCanvas.height = dispH;
+    }
     displayCanvas.style.width = window.innerWidth + 'px';
     displayCanvas.style.height = window.innerHeight + 'px';
     dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
