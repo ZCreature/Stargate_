@@ -164,6 +164,11 @@
     dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     fontSize = Math.max(2, snapToDevicePixel(window.innerHeight / rows));
+
+    // Resizing/rotating can reallocate the display canvas backing store,
+    // which clears it to black - and while frozen, renderFrame never
+    // repaints. Restore the last frame so the frozen image survives.
+    if (frozen && lastOut) paint(lastOut);
   }
 
   function snapToDevicePixel(cssPx) {
@@ -463,12 +468,16 @@
     applyStyle((styleIndex + 1) % STYLES.length);
   });
 
-  let touchStartX = 0, touchStartY = 0;
+  let touchStartX = 0, touchStartY = 0, touchOnControls = false;
   document.addEventListener('touchstart', e => {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    // A swipe that starts on the buttons or panel is the user working the
+    // controls, not asking for a style change.
+    touchOnControls = !!(e.target.closest && e.target.closest('#bottomBar, #panel'));
   }, { passive: true });
   document.addEventListener('touchend', e => {
+    if (touchOnControls) return;
     if (!panel.classList.contains('hidden')) return;
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;
